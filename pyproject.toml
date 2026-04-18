@@ -1,0 +1,12 @@
+[project]
+name = "health-insurance-specialist"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.10"
+dependencies = [
+    "beautifulsoup4>=4.14.3",
+    "datasets>=3.1.0",
+    "kaggle>=1.7.4.5",
+    "lxml>=6.1.0",
+    "requests>=2.32.4",
+]
