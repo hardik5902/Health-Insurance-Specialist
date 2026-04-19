@@ -32,12 +32,17 @@ DELAY = 1.5
 STATE_SOURCES = {
     "california": {
         "seeds": [
-            "https://www.insurance.ca.gov/01-consumers/",
+            "https://www.insurance.ca.gov/01-consumers/110-health/",
             "https://www.coveredca.com/support/",
         ],
         "allowed_prefixes": [
-            "https://www.insurance.ca.gov/01-consumers/",
+            "https://www.insurance.ca.gov/01-consumers/110-health/",
             "https://www.coveredca.com/support/",
+        ],
+        "exclude_prefixes": [
+            "https://www.coveredca.com/support/contact-us/",
+            "https://www.coveredca.com/support/legal-notices",
+            "https://www.coveredca.com/support/forms",
         ],
         "max_pages": 100,
     },
@@ -53,43 +58,89 @@ STATE_SOURCES = {
     },
     "new_york": {
         "seeds": [
-            "https://www.dfs.ny.gov/consumers/health_insurance",
-            "https://nystateofhealth.ny.gov/",
+            "https://www.dfs.ny.gov/consumers/health_insurance/home",
+            "https://www.dfs.ny.gov/consumers/health_insurance/help_seriously_ill",
+            "https://www.dfs.ny.gov/consumers/health_insurance/rights_responsibilities",
+            "https://www.dfs.ny.gov/complaints/file_external_appeal",
         ],
         "allowed_prefixes": [
-            "https://www.dfs.ny.gov/consumers/health_insurance",
-            "https://nystateofhealth.ny.gov/",
+            "https://www.dfs.ny.gov/consumers/health_insurance/",
+            "https://www.dfs.ny.gov/complaints/file_external_appeal",
         ],
+        "exclude_prefixes": [],
         "max_pages": 80,
     },
     "pennsylvania": {
-        "seeds": ["https://www.insurance.pa.gov/Consumers/Health/Pages/default.aspx"],
-        "allowed_prefixes": ["https://www.insurance.pa.gov/Consumers/"],
+        "seeds": [
+            "https://www.insurance.pa.gov/Consumers/Health/Pages/default.aspx",
+            "https://www.insurance.pa.gov/Coverage/health-insurance/",
+        ],
+        "allowed_prefixes": [
+            "https://www.insurance.pa.gov/Consumers/Health/",
+            "https://www.insurance.pa.gov/Coverage/health-insurance/",
+        ],
+        "exclude_prefixes": [],
         "max_pages": 60,
     },
     "illinois": {
         "seeds": ["https://insurance.illinois.gov/Consumer/Health/"],
-        "allowed_prefixes": ["https://insurance.illinois.gov/Consumer/"],
+        "allowed_prefixes": ["https://insurance.illinois.gov/Consumer/Health/"],
+        "exclude_prefixes": [],
         "max_pages": 60,
     },
     "ohio": {
         "seeds": ["https://insurance.ohio.gov/consumer/health-coverage/"],
-        "allowed_prefixes": ["https://insurance.ohio.gov/consumer/"],
+        "allowed_prefixes": ["https://insurance.ohio.gov/consumer/health-coverage/"],
+        "exclude_prefixes": [],
         "max_pages": 60,
     },
     "georgia": {
-        "seeds": ["https://oci.georgia.gov/consumers"],
-        "allowed_prefixes": ["https://oci.georgia.gov/consumers"],
+        "seeds": [
+            "https://oci.georgia.gov/insurance-resources/health",
+            "https://oci.georgia.gov/consumerservice/home.aspx",
+        ],
+        "allowed_prefixes": [
+            "https://oci.georgia.gov/insurance-resources/health",
+            "https://oci.georgia.gov/consumerservice/home.aspx",
+            "https://oci.georgia.gov/news/",
+            "https://oci.georgia.gov/press-releases/",
+        ],
+        "exclude_prefixes": [
+            "https://oci.georgia.gov/about-us",
+            "https://oci.georgia.gov/careers",
+            "https://oci.georgia.gov/contact-us",
+        ],
         "max_pages": 60,
     },
     "michigan": {
-        "seeds": ["https://www.michigan.gov/difs/consumers/health"],
-        "allowed_prefixes": ["https://www.michigan.gov/difs/consumers/health"],
+        "seeds": ["https://www.michigan.gov/difs/consumers/insurance/health-insurance"],
+        "allowed_prefixes": [
+            "https://www.michigan.gov/difs/consumers/insurance/health-insurance",
+        ],
+        "exclude_prefixes": [],
         "max_pages": 60,
     },
     "north_carolina": {
-        "seeds": ["https://www.ncdoi.gov/consumers/health-insurance"],
-        "allowed_prefixes": ["https://www.ncdoi.gov/consumers/"],
+        "seeds": [
+            "https://www.ncdoi.gov/consumers/health-insurance",
+            "https://www.ncdoi.gov/consumers/medicare-and-seniors-health-insurance-information-program-shiip",
+        ],
+        "allowed_prefixes": [
+            "https://www.ncdoi.gov/consumers/health-insurance",
+            "https://www.ncdoi.gov/consumers/medicare-and-seniors-health-insurance-information-program-shiip",
+            "https://www.ncdoi.gov/consumers/get-help-paying-your-medicare-costs",
+            "https://www.ncdoi.gov/consumers/medicare-and-shiip",
+        ],
+        "exclude_prefixes": [
+            "https://www.ncdoi.gov/consumers/auto-and-vehicle-insurance",
+            "https://www.ncdoi.gov/consumers/homeowners-insurance",
+            "https://www.ncdoi.gov/consumers/life-insurance",
+            "https://www.ncdoi.gov/consumers/disaster",
+            "https://www.ncdoi.gov/consumers/annuities",
+            "https://www.ncdoi.gov/consumers/business-insurance",
+            "https://www.ncdoi.gov/consumers/disability-income-insurance",
+            "https://www.ncdoi.gov/consumers/travel-insurance",
+        ],
         "max_pages": 60,
     },
 }
@@ -113,6 +164,10 @@ def fetch(url: str, session: requests.Session):
     try:
         r = session.get(url, headers=HEADERS, timeout=20)
         r.raise_for_status()
+        content_type = r.headers.get("content-type", "").lower()
+        if "text/html" not in content_type and "application/xhtml+xml" not in content_type:
+            print(f"  SKIP: {url} -> non-HTML content ({content_type or 'unknown'})")
+            return None
         return r
     except Exception as e:
         print(f"  WARN: {url} -> {e}")
@@ -161,6 +216,8 @@ def crawl_state(state: str, config: dict) -> int:
         for a in soup.find_all("a", href=True):
             link = urljoin(url, a["href"])
             clean = urlparse(link)._replace(fragment="", query="").geturl()
+            if any(clean.startswith(p) for p in config.get("exclude_prefixes", [])):
+                continue
             if any(clean.startswith(p) for p in config["allowed_prefixes"]) and clean not in visited:
                 queue.append(clean)
 
