@@ -12,17 +12,23 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 RAW_DIR = Path(__file__).parent.parent / "raw" / "state_resources"
 HEADERS = {
     "User-Agent": (
-        "Mozilla/5.0 (compatible; HealthInsuranceResearchBot/1.0; "
-        "+https://github.com/your-repo)"
-    )
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/135.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Connection": "keep-alive",
 }
 DELAY = 1.5
 
-# State insurance commissioner / marketplace sites — public domain content
+# State insurance commissioner / marketplace sites - public consumer content
 STATE_SOURCES = {
     "california": {
         "seeds": [
@@ -41,8 +47,8 @@ STATE_SOURCES = {
         "max_pages": 80,
     },
     "florida": {
-        "seeds": ["https://www.myfloridacfo.com/Division/Consumers/"],
-        "allowed_prefixes": ["https://www.myfloridacfo.com/Division/Consumers/"],
+        "seeds": ["https://www.myfloridacfo.com/division/consumers/"],
+        "allowed_prefixes": ["https://www.myfloridacfo.com/division/consumers/"],
         "max_pages": 80,
     },
     "new_york": {
@@ -89,13 +95,27 @@ STATE_SOURCES = {
 }
 
 
+def make_session() -> requests.Session:
+    session = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=1.0,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET", "HEAD"],
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
+
+
 def fetch(url: str, session: requests.Session):
     try:
         r = session.get(url, headers=HEADERS, timeout=20)
         r.raise_for_status()
         return r
     except Exception as e:
-        print(f"  WARN: {url} → {e}")
+        print(f"  WARN: {url} -> {e}")
         return None
 
 
@@ -116,7 +136,7 @@ def save_page(out_dir: Path, state: str, url: str, text: str) -> None:
 def crawl_state(state: str, config: dict) -> int:
     out_dir = RAW_DIR / state
     out_dir.mkdir(parents=True, exist_ok=True)
-    session = requests.Session()
+    session = make_session()
     visited: set[str] = set()
     queue = list(config["seeds"])
     saved = 0
@@ -146,7 +166,7 @@ def crawl_state(state: str, config: dict) -> int:
 
         time.sleep(DELAY)
 
-    print(f"  → {state}: {saved} pages saved\n")
+    print(f"  -> {state}: {saved} pages saved\n")
     return saved
 
 

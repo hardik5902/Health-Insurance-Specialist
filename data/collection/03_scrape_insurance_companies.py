@@ -97,12 +97,13 @@ def scrape_unitedhealthcare():
     crawl(
         company="UnitedHealthcare",
         seed_urls=[
-            "https://www.uhc.com/health-and-wellness/health-topics/understanding-health-insurance",
-            "https://www.uhc.com/understanding-your-insurance",
+            "https://uhc-gpd-green.uhc.com/",
+            "https://uhc-gpd-green.uhc.com/understanding-health-insurance/types-of-health-insurance/aca-vs-short-term",
+            "https://uhc-gpd-green.uhc.com/understanding-health-insurance/types-of-health-insurance/understanding-hmo-ppo-epo-pos/what-is-an-hdhp",
         ],
         allowed_prefixes=[
-            "https://www.uhc.com/understanding-your-insurance",
-            "https://www.uhc.com/health-and-wellness",
+            "https://uhc-gpd-green.uhc.com/understanding-health-insurance",
+            "https://uhc-gpd-green.uhc.com/",
         ],
         max_pages=150,
     )
@@ -153,12 +154,14 @@ def scrape_humana():
     crawl(
         company="Humana",
         seed_urls=[
-            "https://www.humana.com/learning-center",
-            "https://www.humana.com/medicare/resources",
+            "https://www.humana.com/medicare/medicare-resources/medicare-enrollment-periods",
+            "https://www.humana.com/medicare/medicare-resources/original-medicare-vs-medicare-advantage",
+            "https://www.humana.com/medicaid",
+            "https://www.humana.com/medicaid/enrollment-and-eligibility",
         ],
         allowed_prefixes=[
-            "https://www.humana.com/learning-center",
-            "https://www.humana.com/medicare/resources",
+            "https://www.humana.com/medicare/medicare-resources",
+            "https://www.humana.com/medicaid",
         ],
         max_pages=150,
     )
@@ -168,12 +171,14 @@ def scrape_oscar():
     crawl(
         company="Oscar Health",
         seed_urls=[
-            "https://www.hioscar.com/blog",
-            "https://www.hioscar.com/learn",
+            "https://www.hioscar.com/understanding-insurance",
+            "https://www.hioscar.com/new-to-health-insurance",
+            "https://www.hioscar.com/guide-to-reading-eobs",
         ],
         allowed_prefixes=[
-            "https://www.hioscar.com/blog",
-            "https://www.hioscar.com/learn",
+            "https://www.hioscar.com/understanding-insurance",
+            "https://www.hioscar.com/new-to-health-insurance",
+            "https://www.hioscar.com/guide-to-reading-eobs",
         ],
         max_pages=100,
     )
